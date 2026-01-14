@@ -108,10 +108,17 @@
         
         {% if success %}
         <div class="success">
-            Processing complete! {{ total_calls }} calls processed.
+            Processing complete! {{ total_calls }} calls processed.<br>
+            <strong>Run folder:</strong> <code>runs/{{ run_name }}/</code>
         </div>
         <div class="results">
             <h3>Download Files:</h3>
+            <div class="file-item" style="background-color: #d4edda; margin-bottom: 20px;">
+                <a href="/download-zip/{{ run_name }}" style="font-size: 1.1em; font-weight: bold;">
+                    Download All as ZIP
+                </a>
+                <br><small>Save to your local <code>runs/</code> folder and unzip for GitHub sync</small>
+            </div>
             
             {% set ns = namespace(current_product='', file_groups={}) %}
             
@@ -130,7 +137,7 @@
                 {% if product == "summary" %}
                     <div class="file-item">
                         <strong>Call Summary CSV:</strong><br>
-                        <a href="/download/{{ filename }}">{{ filename }}</a>
+                        <a href="/download/{{ run_name }}/{{ filename }}">{{ filename }}</a>
                     </div>
                 {% endif %}
             {% endfor %}
@@ -142,7 +149,7 @@
                     <div class="product-files">
                         {% for filename in filenames|natural_sort %}
                             <div class="file-item">
-                                <a href="/download/{{ filename }}">{{ filename }}</a>
+                                <a href="/download/{{ run_name }}/{{ filename }}">{{ filename }}</a>
                             </div>
                         {% endfor %}
                     </div>

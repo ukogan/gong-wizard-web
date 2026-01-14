@@ -1,0 +1,2 @@
+# This file ensures the runs directory is tracked by git
+# Run output folders will be created here and can be synced to GitHub for analysis

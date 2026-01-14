@@ -1,9 +1,9 @@
 import base64
 import os
 import re
-import time
-from datetime import datetime, timedelta
-from io import StringIO
+import zipfile
+from datetime import datetime
+from io import BytesIO, StringIO
 import pandas as pd
 import pytz
 import requests
@@ -15,8 +15,9 @@ app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(24))
 # Constants
 GONG_BASE_URL = "https://us-11211.api.gong.io"
 SF_TZ = pytz.timezone('America/Los_Angeles')
-OUTPUT_DIR = "/tmp/gong_output"
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+RUNS_DIR = os.path.join(APP_DIR, "runs")
+os.makedirs(RUNS_DIR, exist_ok=True)
 BATCH_SIZE = 10
 TRANSCRIPT_BATCH_SIZE = 50
 SHEET_ID = "1tvItwAqONZYhetTbg7KAHw0OMPaDfCoFC4g6rSg0QvE"
@@ -687,7 +688,12 @@ def process_calls(calls, transcripts, selected_products):
 
 def generate_files(calls_by_product, summaries, start_date, end_date):
     files = []
-    
+
+    # Create timestamped run folder
+    run_timestamp = datetime.now(SF_TZ).strftime("%Y%m%d_%H%M%S")
+    run_folder = os.path.join(RUNS_DIR, f"run_{run_timestamp}_{start_date}_to_{end_date}")
+    os.makedirs(run_folder, exist_ok=True)
+
     # Generate transcript files - UPDATED: Split into buckets of 5 instead of 10
     for product, calls in calls_by_product.items():
         if not calls:
@@ -703,7 +709,7 @@ def generate_files(calls_by_product, summaries, start_date, end_date):
             # Generate filename with abbreviation and rank
             abbrev = PRODUCT_ABBREVIATIONS.get(product, product[:3].upper())
             filename = f"{abbrev}_rank_{bucket_idx + 1}.txt"
-            filepath = os.path.join(OUTPUT_DIR, filename)
+            filepath = os.path.join(run_folder, filename)
             
             try:
                 with open(filepath, 'w', encoding='utf-8') as f:
@@ -743,7 +749,7 @@ def generate_files(calls_by_product, summaries, start_date, end_date):
     
     # Generate CSV - Edit 6: Include new columns
     csv_filename = f"call-summary_{start_date}_{end_date}.csv"
-    csv_path = os.path.join(OUTPUT_DIR, csv_filename)
+    csv_path = os.path.join(run_folder, csv_filename)
     
     try:
         if summaries:
@@ -769,8 +775,8 @@ def generate_files(calls_by_product, summaries, start_date, end_date):
         files.append(("summary", csv_filename))
     except Exception as e:
         print(f"Error writing CSV file: {str(e)}")
-    
-    return files
+
+    return run_folder, files
 
 # Initialize on startup
 initialize_data()
@@ -830,23 +836,47 @@ def process():
         calls_by_product, summaries = process_calls(all_calls, all_transcripts, selected_products)
         
         # Generate files
-        files = generate_files(calls_by_product, summaries, start_date, end_date)
-        
-        return render_template('index.html', 
+        run_folder, files = generate_files(calls_by_product, summaries, start_date, end_date)
+        run_name = os.path.basename(run_folder)
+
+        return render_template('index.html',
             success=True,
             files=files,
+            run_name=run_name,
             total_calls=len(summaries)
         )
         
     except Exception as e:
         return render_template('index.html', error=f"Error: {str(e)}")
 
-@app.route('/download/<filename>')
-def download(filename):
-    filepath = os.path.join(OUTPUT_DIR, filename)
+@app.route('/download/<run_name>/<filename>')
+def download(run_name, filename):
+    filepath = os.path.join(RUNS_DIR, run_name, filename)
     if os.path.exists(filepath):
         return send_file(filepath, as_attachment=True)
     return "File not found", 404
+
+@app.route('/download-zip/<run_name>')
+def download_zip(run_name):
+    run_path = os.path.join(RUNS_DIR, run_name)
+    if not os.path.exists(run_path):
+        return "Run folder not found", 404
+
+    # Create zip in memory
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for filename in os.listdir(run_path):
+            filepath = os.path.join(run_path, filename)
+            if os.path.isfile(filepath):
+                zf.write(filepath, filename)
+
+    zip_buffer.seek(0)
+    return send_file(
+        zip_buffer,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=f"{run_name}.zip"
+    )
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
