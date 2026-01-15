@@ -20,7 +20,7 @@ RUNS_DIR = os.path.join(APP_DIR, "runs")
 os.makedirs(RUNS_DIR, exist_ok=True)
 BATCH_SIZE = 10
 TRANSCRIPT_BATCH_SIZE = 50
-SHEET_ID = "1tvItwAqONZYhetTbg7KAHw0OMPaDfCoFC4g6rSg0QvE"
+SHEET_ID = "1rOzUYCNSrxjwPI5LVUS5D7vWXRN1SIAE0gsiPIgv5l0"
 
 # Product precedence order
 PRODUCT_PRECEDENCE = [

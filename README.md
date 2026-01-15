@@ -15,7 +15,7 @@ This tool connects to the Gong API to:
 
 ### Step 1: Configuration Loading
 
-On startup, the application loads configuration data from a [Google Sheet](https://docs.google.com/spreadsheets/d/1tvItwAqONZYhetTbg7KAHw0OMPaDfCoFC4g6rSg0QvE) containing:
+On startup, the application loads configuration data from a [Google Sheet](https://docs.google.com/spreadsheets/d/1rOzUYCNSrxjwPI5LVUS5D7vWXRN1SIAE0gsiPIgv5l0) containing:
 
 | Sheet | Purpose |
 |-------|---------|
