@@ -3,126 +3,613 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gong Transcript Wizard</title>
+    <title>GongGPT</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f5f5f5;
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --text-primary: #334155;
+            --text-secondary: #64748b;
+            --bg-primary: #f8fafc;
+            --bg-card: #ffffff;
+            --border: #e2e8f0;
+            --success: #16a34a;
+            --success-bg: #dcfce7;
+            --error: #dc2626;
+            --error-bg: #fee2e2;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
         }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
-        }
-        input[type="text"], input[type="password"], input[type="date"] {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+
+        * {
             box-sizing: border-box;
         }
-        .checkbox-group {
-            margin-bottom: 15px;
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 24px;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
         }
-        .checkbox-group label {
-            font-weight: normal;
-            display: inline;
-            margin-left: 5px;
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
         }
-        button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
+
+        .card {
+            background-color: var(--bg-card);
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 8px 0;
+            text-align: center;
+        }
+
+        .explainer {
+            text-align: center;
+            color: var(--text-secondary);
+            margin: 0 0 24px 0;
+            font-size: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="date"] {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .collapsible-section {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .collapsible-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background-color: var(--bg-primary);
             cursor: pointer;
+            user-select: none;
+        }
+
+        .collapsible-header:hover {
+            background-color: #f1f5f9;
+        }
+
+        .collapsible-header h3 {
+            margin: 0;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .collapsible-content {
+            padding: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .collapsible-content.hidden {
+            display: none;
+        }
+
+        .toggle-icon {
+            transition: transform 0.2s;
+        }
+
+        .toggle-icon.rotated {
+            transform: rotate(180deg);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .checkbox-item label {
+            margin: 0;
+            font-weight: 400;
+            cursor: pointer;
+        }
+
+        button, .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
             width: 100%;
         }
-        button:hover {
-            background-color: #0056b3;
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
         }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background-color: #f1f5f9;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.875rem;
+        }
+
         .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 15px;
+            background-color: var(--error-bg);
+            color: var(--error);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
         }
+
         .success {
-            background-color: #d4edda;
-            color: #155724;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 15px;
+            background-color: var(--success-bg);
+            color: var(--success);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
         }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .results-header h3 {
+            margin: 0;
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .file-grid {
+            display: grid;
+            gap: 12px;
+        }
+
         .file-item {
-            background-color: #f8f9fa;
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: var(--bg-primary);
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
         }
+
         .file-item a {
-            color: #007bff;
+            color: var(--primary);
             text-decoration: none;
-            font-weight: bold;
+            font-weight: 500;
         }
+
         .file-item a:hover {
             text-decoration: underline;
         }
+
+        .file-item.highlight {
+            background-color: var(--success-bg);
+            border-color: var(--success);
+        }
+
         .product-group {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
+
         .product-group h4 {
-            margin-bottom: 10px;
-            color: #333;
+            margin: 0 0 12px 0;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
+
         .product-files {
-            margin-left: 20px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 24px 0;
+        }
+
+        /* Analysis Section */
+        .analysis-section {
+            margin-top: 24px;
+        }
+
+        .analysis-section h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0 0 16px 0;
+        }
+
+        .analysis-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .analysis-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 16px;
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+
+        .analysis-btn:hover {
+            border-color: var(--primary);
+            background-color: #f8faff;
+        }
+
+        .analysis-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .analysis-btn .title {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .analysis-btn .description {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            font-size: 0.625rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            border-radius: 4px;
+            margin-left: 6px;
+        }
+
+        .badge-beta {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        /* Analysis Results */
+        .analysis-results {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: var(--bg-primary);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .analysis-results h4 {
+            margin: 0 0 12px 0;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .analysis-content {
+            font-size: 0.875rem;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* Chatbot */
+        .chatbot-toggle {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .chatbot-toggle:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .chatbot-panel {
+            position: fixed;
+            bottom: 96px;
+            right: 24px;
+            width: 400px;
+            max-height: 500px;
+            background-color: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            display: none;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .chatbot-panel.open {
+            display: flex;
+        }
+
+        .chatbot-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chatbot-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .chatbot-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-secondary);
+            padding: 4px;
+        }
+
+        .chatbot-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            max-height: 350px;
+        }
+
+        .chat-message {
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            max-width: 85%;
+            font-size: 0.875rem;
+        }
+
+        .chat-message.user {
+            background-color: var(--primary);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-message.assistant {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-typing {
+            display: flex;
+            gap: 4px;
+            padding: 10px 14px;
+            background-color: var(--bg-primary);
+            border-radius: 12px;
+            width: fit-content;
+        }
+
+        .chat-typing span {
+            width: 8px;
+            height: 8px;
+            background-color: var(--text-secondary);
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .chat-typing span:nth-child(2) { animation-delay: 0.2s; }
+        .chat-typing span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-4px); }
+        }
+
+        .chatbot-input {
+            padding: 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+        }
+
+        .chatbot-input input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-family: inherit;
+        }
+
+        .chatbot-input input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .chatbot-input button {
+            padding: 10px 16px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 16px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .chatbot-panel {
+                width: calc(100% - 32px);
+                right: 16px;
+                bottom: 88px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Gong Transcript Wizard</h1>
-        
-        {% if error %}
-        <div class="error">{{ error }}</div>
-        {% endif %}
-        
-        {% if success %}
-        <div class="success">
-            Processing complete! {{ total_calls }} calls processed.<br>
-            <strong>Run folder:</strong> <code>runs/{{ run_name }}/</code>
-        </div>
-        <div class="results">
-            <h3>Download Files:</h3>
-            <div class="file-item" style="background-color: #d4edda; margin-bottom: 20px;">
-                <a href="/download-zip/{{ run_name }}" style="font-size: 1.1em; font-weight: bold;">
-                    Download All as ZIP
-                </a>
-                <br><small>Save to your local <code>runs/</code> folder and unzip for GitHub sync</small>
+        <div class="card">
+            <h1>GongGPT</h1>
+            <p class="explainer">Process Gong calls by date range and product focus</p>
+
+            {% if error %}
+            <div class="error">{{ error }}</div>
+            {% endif %}
+
+            {% if success %}
+            <div class="success">
+                Processing complete! {{ total_calls }} calls processed.
             </div>
-            
-            {% set ns = namespace(current_product='', file_groups={}) %}
-            
-            <!-- Group files by product -->
+
+            <div class="results-header">
+                <h3>Download Files</h3>
+                <a href="/download-zip/{{ run_name }}" class="btn btn-primary btn-sm">
+                    Download All (ZIP)
+                </a>
+            </div>
+
+            <div class="file-grid">
+                {% for product, filename in files %}
+                    {% if product == "summary" %}
+                    <div class="file-item highlight">
+                        <span>Call Summary</span>
+                        <a href="/download/{{ run_name }}/{{ filename }}">{{ filename }}</a>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            {% set ns = namespace(file_groups={}) %}
             {% for product, filename in files %}
                 {% if product != "summary" %}
                     {% if product not in ns.file_groups %}
@@ -131,84 +618,317 @@
                     {% set _ = ns.file_groups[product].append(filename) %}
                 {% endif %}
             {% endfor %}
-            
-            <!-- Display CSV summary first -->
-            {% for product, filename in files %}
-                {% if product == "summary" %}
+
+            {% for product, filenames in ns.file_groups.items() %}
+            <div class="product-group">
+                <h4>{{ product|upper }} Transcripts</h4>
+                <div class="product-files">
+                    {% for filename in filenames|natural_sort %}
                     <div class="file-item">
-                        <strong>Call Summary CSV:</strong><br>
                         <a href="/download/{{ run_name }}/{{ filename }}">{{ filename }}</a>
                     </div>
-                {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
             {% endfor %}
-            
-            <!-- Display transcript files grouped by product -->
-            {% for product, filenames in ns.file_groups.items() %}
-                <div class="product-group">
-                    <h4>{{ product|upper }} Transcripts:</h4>
-                    <div class="product-files">
-                        {% for filename in filenames|natural_sort %}
-                            <div class="file-item">
-                                <a href="/download/{{ run_name }}/{{ filename }}">{{ filename }}</a>
-                            </div>
-                        {% endfor %}
+
+            <hr class="divider">
+
+            <!-- Analysis Section -->
+            <div class="analysis-section" id="analysis-section">
+                <h3>AI Analysis</h3>
+                <div class="analysis-buttons">
+                    <button class="analysis-btn" onclick="runAnalysis('objection')" data-run="{{ run_name }}">
+                        <span class="title">Objection Analysis</span>
+                        <span class="description">Extract and classify customer objections</span>
+                    </button>
+                    <button class="analysis-btn" onclick="runAnalysis('partnership')" data-run="{{ run_name }}">
+                        <span class="title">Partnership Opportunities<span class="badge badge-beta">Beta</span></span>
+                        <span class="description">Identify potential partner mentions</span>
+                    </button>
+                    <button class="analysis-btn" onclick="runAnalysis('feedback')" data-run="{{ run_name }}">
+                        <span class="title">Product Feedback<span class="badge badge-beta">Beta</span></span>
+                        <span class="description">Extract product improvement suggestions</span>
+                    </button>
+                    <button class="analysis-btn" onclick="runAnalysis('needs')" data-run="{{ run_name }}">
+                        <span class="title">Customer Needs<span class="badge badge-beta">Beta</span></span>
+                        <span class="description">Identify unmet needs and pain points</span>
+                    </button>
+                </div>
+                <div id="analysis-results" class="analysis-results hidden">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 id="analysis-title">Analysis Results</h4>
+                        <button class="btn btn-secondary btn-sm" onclick="downloadAnalysis()">Download (.docx)</button>
+                    </div>
+                    <div id="analysis-content" class="analysis-content"></div>
+                </div>
+            </div>
+
+            <hr class="divider">
+            {% endif %}
+
+            <form action="/process" method="post" id="process-form">
+                <!-- Collapsible API Keys Section -->
+                <div class="collapsible-section" id="api-section">
+                    <div class="collapsible-header" onclick="toggleSection('api-section')">
+                        <h3>API Credentials (optional if server-configured)</h3>
+                        <svg class="toggle-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="collapsible-content{% if has_server_credentials %} hidden{% endif %}">
+                        <div class="form-group">
+                            <label for="access_key">Gong Access Key</label>
+                            <input type="text" id="access_key" name="access_key" placeholder="Leave blank to use server credentials">
+                        </div>
+                        <div class="form-group">
+                            <label for="secret_key">Gong Secret Key</label>
+                            <input type="password" id="secret_key" name="secret_key" placeholder="Leave blank to use server credentials">
+                        </div>
                     </div>
                 </div>
-            {% endfor %}
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="start_date">Start Date</label>
+                        <input type="date" id="start_date" name="start_date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="end_date">End Date</label>
+                        <input type="date" id="end_date" name="end_date" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Products</label>
+                    <div class="checkbox-grid">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="secure_air" name="products" value="secure air">
+                            <label for="secure_air">SecureAire</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="eaas" name="products" value="eaas and savings measurement">
+                            <label for="eaas">EaaS / Savings</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="odcv" name="products" value="odcv">
+                            <label for="odcv">ODCV</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="occupancy" name="products" value="occupancy analytics">
+                            <label for="occupancy">Occupancy</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="iaq" name="products" value="iaq monitoring">
+                            <label for="iaq">IAQ Monitoring</label>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Process Calls</button>
+            </form>
+
+            <hr class="divider">
+            <div style="text-align: center;">
+                <a href="https://docs.google.com/document/d/1HPjZcaTaG8o-zhBOfqSp4lN9V51Rd-yZhbgfV3RfxDE/edit?usp=drivesdk"
+                   target="_blank"
+                   class="btn btn-secondary btn-sm">
+                    Bot Instructions
+                </a>
+            </div>
         </div>
-        
-        <hr>
-        <div style="text-align: center; margin-top: 20px;">
-            <a href="https://docs.google.com/document/d/1HPjZcaTaG8o-zhBOfqSp4lN9V51Rd-yZhbgfV3RfxDE/edit?usp=drivesdk" 
-               target="_blank" 
-               style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px;">
-                Bot Instructions
-            </a>
-        </div>
-        <hr>
-        {% endif %}
-        
-        <form action="/process" method="post">
-            <div class="form-group">
-                <label for="access_key">Access Key</label>
-                <input type="text" id="access_key" name="access_key" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="secret_key">Secret Key</label>
-                <input type="password" id="secret_key" name="secret_key" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="start_date">Start Date</label>
-                <input type="date" id="start_date" name="start_date" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="end_date">End Date</label>
-                <input type="date" id="end_date" name="end_date" required>
-            </div>
-            
-            <div class="checkbox-group">
-                <label style="font-weight: bold;">Products:</label><br>
-                <input type="checkbox" id="secure_air" name="products" value="secure air">
-                <label for="secure_air">SecureAire</label><br>
-                
-                <input type="checkbox" id="eaas" name="products" value="eaas and savings measurement">
-                <label for="eaas">EaaS and Savings Measurement</label><br>
-                
-                <input type="checkbox" id="odcv" name="products" value="odcv">
-                <label for="odcv">ODCV</label><br>
-                
-                <input type="checkbox" id="occupancy" name="products" value="occupancy analytics">
-                <label for="occupancy">Occupancy Analytics</label><br>
-                
-                <input type="checkbox" id="iaq" name="products" value="iaq monitoring">
-                <label for="iaq">IAQ Monitoring</label><br>
-            </div>
-            
-            <button type="submit">Process Calls</button>
-        </form>
     </div>
+
+    <!-- Chatbot -->
+    <button class="chatbot-toggle" onclick="toggleChatbot()" id="chatbot-toggle" title="Ask questions about your transcripts">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+    </button>
+
+    <div class="chatbot-panel" id="chatbot-panel">
+        <div class="chatbot-header">
+            <h3>Ask about transcripts</h3>
+            <button class="chatbot-close" onclick="toggleChatbot()">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 5L5 15M5 5l10 10"/>
+                </svg>
+            </button>
+        </div>
+        <div class="chatbot-messages" id="chatbot-messages">
+            <div class="chat-message assistant">
+                Ask me anything about the processed transcripts. For example: "What objections did finance personas raise?"
+            </div>
+        </div>
+        <div class="chatbot-input">
+            <input type="text" id="chat-input" placeholder="Type a question..." onkeypress="handleChatKeypress(event)">
+            <button onclick="sendChatMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        // Current run name for API calls
+        const currentRunName = "{{ run_name or '' }}";
+        let chatHistory = [];
+        let currentAnalysisType = null;
+        let currentAnalysisContent = null;
+
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            const content = section.querySelector('.collapsible-content');
+            const icon = section.querySelector('.toggle-icon');
+            content.classList.toggle('hidden');
+            icon.classList.toggle('rotated');
+        }
+
+        function toggleChatbot() {
+            const panel = document.getElementById('chatbot-panel');
+            panel.classList.toggle('open');
+            if (panel.classList.contains('open')) {
+                document.getElementById('chat-input').focus();
+            }
+        }
+
+        async function runAnalysis(type) {
+            if (!currentRunName) {
+                alert('Please process calls first before running analysis.');
+                return;
+            }
+
+            const buttons = document.querySelectorAll('.analysis-btn');
+            buttons.forEach(btn => btn.disabled = true);
+
+            const resultsDiv = document.getElementById('analysis-results');
+            const contentDiv = document.getElementById('analysis-content');
+            const titleEl = document.getElementById('analysis-title');
+
+            const typeNames = {
+                'objection': 'Objection Analysis',
+                'partnership': 'Partnership Opportunities',
+                'feedback': 'Product Feedback',
+                'needs': 'Customer Needs'
+            };
+
+            titleEl.textContent = typeNames[type] + ' Results';
+            contentDiv.innerHTML = '<div class="loading"></div> Analyzing transcripts...';
+            resultsDiv.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ run_name: currentRunName, type: type })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    contentDiv.textContent = 'Error: ' + data.error;
+                } else {
+                    currentAnalysisType = type;
+                    currentAnalysisContent = data.result;
+                    contentDiv.textContent = data.result;
+                }
+            } catch (error) {
+                contentDiv.textContent = 'Error: ' + error.message;
+            }
+
+            buttons.forEach(btn => btn.disabled = false);
+        }
+
+        async function downloadAnalysis() {
+            if (!currentAnalysisContent) return;
+
+            try {
+                const response = await fetch('/api/download-analysis', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        run_name: currentRunName,
+                        type: currentAnalysisType,
+                        content: currentAnalysisContent
+                    })
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = currentAnalysisType + '_analysis.docx';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    alert('Failed to download analysis');
+                }
+            } catch (error) {
+                alert('Error downloading: ' + error.message);
+            }
+        }
+
+        function handleChatKeypress(event) {
+            if (event.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            if (!currentRunName) {
+                addChatMessage('assistant', 'Please process calls first before asking questions.');
+                return;
+            }
+
+            addChatMessage('user', message);
+            input.value = '';
+
+            const messagesDiv = document.getElementById('chatbot-messages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'chat-typing';
+            typingDiv.innerHTML = '<span></span><span></span><span></span>';
+            messagesDiv.appendChild(typingDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        run_name: currentRunName,
+                        history: chatHistory
+                    })
+                });
+
+                const data = await response.json();
+                typingDiv.remove();
+
+                if (data.error) {
+                    addChatMessage('assistant', 'Error: ' + data.error);
+                } else {
+                    chatHistory.push({ role: 'user', content: message });
+                    chatHistory.push({ role: 'assistant', content: data.response });
+                    addChatMessage('assistant', data.response);
+                }
+            } catch (error) {
+                typingDiv.remove();
+                addChatMessage('assistant', 'Error: ' + error.message);
+            }
+        }
+
+        function addChatMessage(role, content) {
+            const messagesDiv = document.getElementById('chatbot-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message ' + role;
+            messageDiv.textContent = content;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    </script>
 </body>
 </html>

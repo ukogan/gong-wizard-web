@@ -7,7 +7,25 @@ from io import BytesIO, StringIO
 import pandas as pd
 import pytz
 import requests
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request, send_file, jsonify
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Optional imports for Claude integration
+try:
+    import anthropic
+    ANTHROPIC_AVAILABLE = True
+except ImportError:
+    ANTHROPIC_AVAILABLE = False
+
+try:
+    from docx import Document
+    from docx.shared import Pt, Inches
+    DOCX_AVAILABLE = True
+except ImportError:
+    DOCX_AVAILABLE = False
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(24))
@@ -17,10 +35,48 @@ GONG_BASE_URL = "https://us-11211.api.gong.io"
 SF_TZ = pytz.timezone('America/Los_Angeles')
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 RUNS_DIR = os.path.join(APP_DIR, "runs")
+PROMPTS_DIR = os.path.join(APP_DIR, "prompts")
 os.makedirs(RUNS_DIR, exist_ok=True)
 BATCH_SIZE = 10
 TRANSCRIPT_BATCH_SIZE = 50
 SHEET_ID = "1rOzUYCNSrxjwPI5LVUS5D7vWXRN1SIAE0gsiPIgv5l0"
+
+# Environment variable credentials
+ENV_GONG_ACCESS_KEY = os.environ.get('GONG_ACCESS_KEY', '')
+ENV_GONG_SECRET_KEY = os.environ.get('GONG_SECRET_KEY', '')
+ENV_ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+
+def has_server_credentials():
+    """Check if Gong credentials are configured in environment"""
+    return bool(ENV_GONG_ACCESS_KEY and ENV_GONG_SECRET_KEY)
+
+def get_anthropic_client():
+    """Get Anthropic client if available and configured"""
+    if not ANTHROPIC_AVAILABLE:
+        return None
+    if not ENV_ANTHROPIC_API_KEY:
+        return None
+    return anthropic.Anthropic(api_key=ENV_ANTHROPIC_API_KEY)
+
+def load_prompt(prompt_type):
+    """Load a prompt from the prompts directory"""
+    prompt_files = {
+        'objection': 'objection-analysis.md',
+        'partnership': 'partnership-opportunities.md',
+        'feedback': 'product-feedback.md',
+        'needs': 'customer-needs.md'
+    }
+
+    filename = prompt_files.get(prompt_type)
+    if not filename:
+        return None
+
+    filepath = os.path.join(PROMPTS_DIR, filename)
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            return f.read()
+    except:
+        return None
 
 # Product precedence order
 PRODUCT_PRECEDENCE = [
@@ -783,21 +839,29 @@ initialize_data()
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', has_server_credentials=has_server_credentials())
 
 @app.route('/process', methods=['POST'])
 def process():
     try:
-        # Get form data
-        access_key = request.form.get('access_key', '').strip()
-        secret_key = request.form.get('secret_key', '').strip()
+        # Get form data - use env vars as fallback
+        access_key = request.form.get('access_key', '').strip() or ENV_GONG_ACCESS_KEY
+        secret_key = request.form.get('secret_key', '').strip() or ENV_GONG_SECRET_KEY
         selected_products = request.form.getlist('products')
         start_date = request.form.get('start_date')
         end_date = request.form.get('end_date')
-        
-        # Validate
-        if not all([access_key, secret_key, selected_products, start_date, end_date]):
-            return render_template('index.html', error="Please fill all fields and select at least one product")
+
+        # Validate credentials
+        if not access_key or not secret_key:
+            return render_template('index.html',
+                error="API credentials required. Either enter them or configure server environment variables.",
+                has_server_credentials=has_server_credentials())
+
+        # Validate other fields
+        if not all([selected_products, start_date, end_date]):
+            return render_template('index.html',
+                error="Please select at least one product and specify date range",
+                has_server_credentials=has_server_credentials())
         
         # Parse dates
         start_dt = datetime.strptime(start_date, '%Y-%m-%d').replace(tzinfo=pytz.UTC)
@@ -847,7 +911,9 @@ def process():
         )
         
     except Exception as e:
-        return render_template('index.html', error=f"Error: {str(e)}")
+        return render_template('index.html',
+            error=f"Error: {str(e)}",
+            has_server_credentials=has_server_credentials())
 
 @app.route('/download/<run_name>/<filename>')
 def download(run_name, filename):
@@ -877,6 +943,219 @@ def download_zip(run_name):
         as_attachment=True,
         download_name=f"{run_name}.zip"
     )
+
+def get_run_transcripts(run_name):
+    """Load all transcript files from a run folder"""
+    run_path = os.path.join(RUNS_DIR, run_name)
+    if not os.path.exists(run_path):
+        return None
+
+    transcripts = []
+    for filename in sorted(os.listdir(run_path)):
+        if filename.endswith('.txt'):
+            filepath = os.path.join(run_path, filename)
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    transcripts.append({
+                        'filename': filename,
+                        'content': f.read()
+                    })
+            except:
+                continue
+    return transcripts
+
+
+@app.route('/api/analyze', methods=['POST'])
+def api_analyze():
+    """Run Claude analysis on transcripts"""
+    client = get_anthropic_client()
+    if not client:
+        return jsonify({'error': 'Claude API not configured. Set ANTHROPIC_API_KEY environment variable.'}), 400
+
+    data = request.get_json()
+    run_name = data.get('run_name')
+    analysis_type = data.get('type')
+
+    if not run_name or not analysis_type:
+        return jsonify({'error': 'Missing run_name or type parameter'}), 400
+
+    # Load transcripts
+    transcripts = get_run_transcripts(run_name)
+    if not transcripts:
+        return jsonify({'error': f'Run folder not found: {run_name}'}), 404
+
+    # Load prompt template
+    prompt_template = load_prompt(analysis_type)
+    if not prompt_template:
+        return jsonify({'error': f'Unknown analysis type: {analysis_type}'}), 400
+
+    # Combine transcripts (limit to avoid token limits)
+    combined_content = ""
+    for t in transcripts[:5]:  # Limit to first 5 files
+        combined_content += f"\n\n=== {t['filename']} ===\n{t['content'][:10000]}"
+
+    # Extract the extraction prompt from the template
+    analysis_names = {
+        'objection': 'customer objections',
+        'partnership': 'partnership opportunities',
+        'feedback': 'product feedback',
+        'needs': 'customer needs'
+    }
+
+    try:
+        message = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=4096,
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"""Analyze the following sales call transcripts to identify {analysis_names.get(analysis_type, 'insights')}.
+
+Context:
+- [I] = Internal R-Zero speaker
+- [E] = External customer speaker (shown in ALL CAPS)
+- Focus on what external speakers say
+
+Provide a structured analysis with:
+1. Executive Summary (2-3 sentences)
+2. Key Findings (bulleted list)
+3. Detailed Analysis (organized by theme)
+4. Recommendations
+
+TRANSCRIPTS:
+{combined_content}"""
+                }
+            ]
+        )
+
+        result = message.content[0].text
+        return jsonify({'result': result})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/chat', methods=['POST'])
+def api_chat():
+    """Chat with Claude about transcripts"""
+    client = get_anthropic_client()
+    if not client:
+        return jsonify({'error': 'Claude API not configured. Set ANTHROPIC_API_KEY environment variable.'}), 400
+
+    data = request.get_json()
+    run_name = data.get('run_name')
+    message = data.get('message')
+    history = data.get('history', [])
+
+    if not run_name or not message:
+        return jsonify({'error': 'Missing run_name or message parameter'}), 400
+
+    # Load transcripts for context
+    transcripts = get_run_transcripts(run_name)
+    if not transcripts:
+        return jsonify({'error': f'Run folder not found: {run_name}'}), 404
+
+    # Build context from transcripts (summarized to save tokens)
+    transcript_summary = f"You have access to {len(transcripts)} transcript files from Gong sales calls.\n\n"
+    for t in transcripts[:3]:  # Include first 3 files as context
+        transcript_summary += f"=== {t['filename']} ===\n{t['content'][:5000]}\n\n"
+
+    # Build messages with history
+    messages = []
+
+    # Add conversation history
+    for h in history[-10:]:  # Limit history to last 10 messages
+        messages.append({
+            "role": h.get('role', 'user'),
+            "content": h.get('content', '')
+        })
+
+    # Add current message
+    messages.append({
+        "role": "user",
+        "content": message
+    })
+
+    try:
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=2048,
+            system=f"""You are analyzing sales call transcripts for R-Zero, a company that provides building technology solutions.
+
+Context about the transcripts:
+- [I] = Internal R-Zero speaker
+- [E] = External customer speaker (shown in ALL CAPS)
+- Products include: SecureAire, EaaS/Savings Measurement, ODCV, Occupancy Analytics, IAQ Monitoring
+
+Available transcript data:
+{transcript_summary}
+
+Answer questions about patterns, objections, customer needs, and insights from these calls. Be specific and cite examples when possible.""",
+            messages=messages
+        )
+
+        return jsonify({'response': response.content[0].text})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/download-analysis', methods=['POST'])
+def api_download_analysis():
+    """Download analysis as Word document"""
+    if not DOCX_AVAILABLE:
+        return jsonify({'error': 'Word document generation not available. Install python-docx.'}), 400
+
+    data = request.get_json()
+    run_name = data.get('run_name', 'analysis')
+    analysis_type = data.get('type', 'analysis')
+    content = data.get('content', '')
+
+    if not content:
+        return jsonify({'error': 'No content to download'}), 400
+
+    try:
+        # Create Word document
+        doc = Document()
+
+        # Add title
+        title_names = {
+            'objection': 'Objection Analysis',
+            'partnership': 'Partnership Opportunities',
+            'feedback': 'Product Feedback',
+            'needs': 'Customer Needs'
+        }
+        title = doc.add_heading(title_names.get(analysis_type, 'Analysis'), 0)
+
+        # Add metadata
+        doc.add_paragraph(f"Run: {run_name}")
+        doc.add_paragraph(f"Generated: {datetime.now(SF_TZ).strftime('%B %d, %Y')}")
+        doc.add_paragraph("")
+
+        # Add content
+        for line in content.split('\n'):
+            if line.startswith('##'):
+                doc.add_heading(line.replace('##', '').strip(), level=2)
+            elif line.startswith('#'):
+                doc.add_heading(line.replace('#', '').strip(), level=1)
+            elif line.strip():
+                doc.add_paragraph(line)
+
+        # Save to buffer
+        buffer = BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+
+        return send_file(
+            buffer,
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            as_attachment=True,
+            download_name=f"{analysis_type}_analysis.docx"
+        )
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
