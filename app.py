@@ -2,16 +2,20 @@ import base64
 import os
 import re
 import zipfile
+import secrets
 from datetime import datetime
+from functools import wraps
 from io import BytesIO, StringIO
 import pandas as pd
 import pytz
 import requests
-from flask import Flask, render_template, request, send_file, jsonify
+from flask import Flask, render_template, request, send_file, jsonify, redirect, url_for, session
 from dotenv import load_dotenv
+from authlib.integrations.flask_client import OAuth
 
 # Load environment variables from .env file
-load_dotenv()
+_app_dir = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(_app_dir, '.env'))
 
 # Optional imports for Claude integration
 try:
@@ -28,7 +32,32 @@ except ImportError:
     DOCX_AVAILABLE = False
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(24))
+app.secret_key = os.environ.get('FLASK_SECRET_KEY') or secrets.token_hex(32)
+
+# OAuth Configuration
+oauth = OAuth(app)
+google = oauth.register(
+    name='google',
+    client_id=os.environ.get('GOOGLE_CLIENT_ID'),
+    client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={
+        'scope': 'openid email profile'
+    }
+)
+
+# Allowed email domain
+ALLOWED_EMAIL_DOMAIN = 'rzero.com'
+
+
+def login_required(f):
+    """Decorator to require authentication for routes"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # Constants
 GONG_BASE_URL = "https://us-11211.api.gong.io"
@@ -837,49 +866,224 @@ def generate_files(calls_by_product, summaries, start_date, end_date):
 # Initialize on startup
 initialize_data()
 
+
+# ============ AUTH ROUTES ============
+
+@app.route('/login')
+def login():
+    """Show login page"""
+    error = request.args.get('error')
+    return render_template('login.html', error=error)
+
+
+@app.route('/auth/login')
+def auth_login():
+    """Initiate Google OAuth flow"""
+    # Generate nonce for security
+    nonce = secrets.token_urlsafe(16)
+    session['oauth_nonce'] = nonce
+
+    # Determine redirect URI based on environment
+    if os.environ.get('RAILWAY_PUBLIC_DOMAIN'):
+        redirect_uri = f"https://{os.environ['RAILWAY_PUBLIC_DOMAIN']}/auth/callback"
+    else:
+        redirect_uri = url_for('auth_callback', _external=True)
+
+    return google.authorize_redirect(redirect_uri, nonce=nonce)
+
+
+@app.route('/auth/callback')
+def auth_callback():
+    """Handle Google OAuth callback"""
+    try:
+        token = google.authorize_access_token()
+        nonce = session.pop('oauth_nonce', None)
+        user_info = google.parse_id_token(token, nonce=nonce)
+
+        email = user_info.get('email', '')
+
+        # Check if email is from allowed domain
+        if not email.endswith(f'@{ALLOWED_EMAIL_DOMAIN}'):
+            return redirect(url_for('login', error=f'Access restricted to @{ALLOWED_EMAIL_DOMAIN} accounts'))
+
+        # Store user in session
+        session['user'] = {
+            'email': email,
+            'name': user_info.get('name', ''),
+            'picture': user_info.get('picture', '')
+        }
+
+        return redirect(url_for('index'))
+
+    except Exception as e:
+        print(f"OAuth error: {str(e)}")
+        return redirect(url_for('login', error='Authentication failed. Please try again.'))
+
+
+@app.route('/logout')
+def logout():
+    """Clear session and redirect to login"""
+    session.clear()
+    return redirect(url_for('login'))
+
+
+# ============ PROTECTED ROUTES ============
+
 @app.route('/')
+@login_required
 def index():
-    return render_template('index.html', has_server_credentials=has_server_credentials())
+    return render_template('index.html', has_server_credentials=has_server_credentials(), user=session.get('user'))
+
+@app.route('/new')
+@login_required
+def index_new():
+    return render_template('index_new.html', has_server_credentials=has_server_credentials(), user=session.get('user'))
+
+def run_analysis_for_type(run_name, analysis_type):
+    """Run Claude analysis for a specific type and return results"""
+    client = get_anthropic_client()
+    if not client:
+        return None
+
+    # Load transcripts
+    transcripts = get_run_transcripts(run_name)
+    if not transcripts:
+        return None
+
+    # Combine transcripts (limit to avoid token limits)
+    combined_content = ""
+    for t in transcripts[:5]:  # Limit to first 5 files
+        combined_content += f"\n\n=== {t['filename']} ===\n{t['content'][:10000]}"
+
+    # Analysis type names and prompts
+    analysis_names = {
+        'objection': 'Objection Analysis',
+        'partnership': 'Partnership Opportunities',
+        'feedback': 'Product Feedback',
+        'needs': 'Customer Needs'
+    }
+
+    analysis_descriptions = {
+        'objection': 'customer objections',
+        'partnership': 'partnership opportunities',
+        'feedback': 'product feedback',
+        'needs': 'customer needs'
+    }
+
+    try:
+        message = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=4096,
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"""Analyze the following sales call transcripts to identify {analysis_descriptions.get(analysis_type, 'insights')}.
+
+Context:
+- [I] = Internal R-Zero speaker
+- [E] = External customer speaker (shown in ALL CAPS)
+- Focus on what external speakers say
+
+CRITICAL: For every finding, you MUST include:
+1. The exact quote from the transcript (verbatim, first 200 characters)
+2. The call date (from the CALL: and DATE: headers)
+3. The timestamp in the format MM:SS (from the transcript timestamps like "5:23 | Speaker")
+
+Provide a structured analysis with:
+1. Executive Summary (2-3 sentences)
+2. Key Findings (bulleted list with quotes, call dates, and timestamps)
+3. Detailed Analysis (organized by theme, with specific citations)
+4. Recommendations
+
+Example citation format:
+- "QUOTE TEXT HERE..." (Call ID: 123456, Date: Jan 15, 2026, Timestamp: 5:23)
+
+TRANSCRIPTS:
+{combined_content}"""
+                }
+            ]
+        )
+
+        result = message.content[0].text
+        return {
+            'type': analysis_type,
+            'name': analysis_names.get(analysis_type, analysis_type.title()),
+            'content': result
+        }
+
+    except Exception as e:
+        print(f"Error running {analysis_type} analysis: {str(e)}")
+        return None
+
+
+def save_analysis_to_file(run_folder, analysis_type, content):
+    """Save analysis results to a text file in the run folder"""
+    analysis_names = {
+        'objection': 'Objection_Analysis',
+        'partnership': 'Partnership_Opportunities',
+        'feedback': 'Product_Feedback',
+        'needs': 'Customer_Needs'
+    }
+
+    filename = f"{analysis_names.get(analysis_type, analysis_type)}_AI_Analysis.txt"
+    filepath = os.path.join(run_folder, filename)
+
+    try:
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(f"{'=' * 60}\n")
+            f.write(f"AI ANALYSIS: {analysis_names.get(analysis_type, analysis_type).replace('_', ' ').upper()}\n")
+            f.write(f"Generated: {datetime.now(SF_TZ).strftime('%B %d, %Y at %I:%M %p')}\n")
+            f.write(f"{'=' * 60}\n\n")
+            f.write(content)
+        return filename
+    except Exception as e:
+        print(f"Error saving analysis file: {str(e)}")
+        return None
+
 
 @app.route('/process', methods=['POST'])
+@login_required
 def process():
+    # Determine which template to render based on source
+    template_version = request.form.get('template', '')
+    template_name = 'index_new.html' if template_version == 'new' else 'index.html'
+
     try:
-        # Get form data - use env vars as fallback
-        access_key = request.form.get('access_key', '').strip() or ENV_GONG_ACCESS_KEY
-        secret_key = request.form.get('secret_key', '').strip() or ENV_GONG_SECRET_KEY
+        # Get form data - use env vars for credentials
+        access_key = ENV_GONG_ACCESS_KEY
+        secret_key = ENV_GONG_SECRET_KEY
         selected_products = request.form.getlist('products')
+        selected_analyses = request.form.getlist('analysis_types')
         start_date = request.form.get('start_date')
         end_date = request.form.get('end_date')
 
         # Validate credentials
         if not access_key or not secret_key:
-            return render_template('index.html',
-                error="API credentials required. Either enter them or configure server environment variables.",
-                has_server_credentials=has_server_credentials())
+            return render_template(template_name,
+                error="API credentials not configured. Please set GONG_ACCESS_KEY and GONG_SECRET_KEY environment variables.")
 
         # Validate other fields
         if not all([selected_products, start_date, end_date]):
-            return render_template('index.html',
-                error="Please select at least one product and specify date range",
-                has_server_credentials=has_server_credentials())
-        
+            return render_template(template_name,
+                error="Please select at least one product and specify date range")
+
         # Parse dates
         start_dt = datetime.strptime(start_date, '%Y-%m-%d').replace(tzinfo=pytz.UTC)
         end_dt = datetime.strptime(end_date, '%Y-%m-%d').replace(hour=23, minute=59, second=59, tzinfo=pytz.UTC)
-        
-        # BUG FIX 5: Add date range validation (6 months max)
+
+        # Date range validation (6 months max)
         date_diff = end_dt - start_dt
-        if date_diff.days > 180:  # 6 months = ~180 days
-            return render_template('index.html', error="Date range cannot exceed 6 months. Please select a shorter range.")
-        
+        if date_diff.days > 180:
+            return render_template(template_name, error="Date range cannot exceed 6 months. Please select a shorter range.")
+
         # Initialize API client
         client = GongAPIClient(access_key, secret_key)
-        
+
         # Fetch call IDs
         call_ids = client.fetch_call_list(start_dt.isoformat(), end_dt.isoformat())
         if not call_ids:
-            return render_template('index.html', error="No calls found in the selected date range")
-        
+            return render_template(template_name, error="No calls found in the selected date range")
+
         # Fetch transcripts in batches
         all_transcripts = {}
         for i in range(0, len(call_ids), TRANSCRIPT_BATCH_SIZE):
@@ -887,7 +1091,7 @@ def process():
             transcripts = client.fetch_transcript(batch)
             if transcripts:
                 all_transcripts.update(transcripts)
-        
+
         # Fetch call details in batches
         all_calls = []
         for i in range(0, len(call_ids), BATCH_SIZE):
@@ -895,27 +1099,38 @@ def process():
             for call in client.fetch_call_details(batch):
                 if call:
                     all_calls.append(call)
-        
+
         # Process calls
         calls_by_product, summaries = process_calls(all_calls, all_transcripts, selected_products)
-        
+
         # Generate files
         run_folder, files = generate_files(calls_by_product, summaries, start_date, end_date)
         run_name = os.path.basename(run_folder)
 
-        return render_template('index.html',
+        # Run AI analyses for selected types
+        analysis_results = []
+        if selected_analyses and ANTHROPIC_AVAILABLE and ENV_ANTHROPIC_API_KEY:
+            for analysis_type in selected_analyses:
+                result = run_analysis_for_type(run_name, analysis_type)
+                if result:
+                    analysis_results.append(result)
+                    # Save analysis to file so it's included in ZIP
+                    save_analysis_to_file(run_folder, analysis_type, result['content'])
+
+        return render_template(template_name,
             success=True,
             files=files,
             run_name=run_name,
-            total_calls=len(summaries)
+            total_calls=len(summaries),
+            analysis_results=analysis_results
         )
-        
+
     except Exception as e:
-        return render_template('index.html',
-            error=f"Error: {str(e)}",
-            has_server_credentials=has_server_credentials())
+        return render_template(template_name,
+            error=f"Error: {str(e)}")
 
 @app.route('/download/<run_name>/<filename>')
+@login_required
 def download(run_name, filename):
     filepath = os.path.join(RUNS_DIR, run_name, filename)
     if os.path.exists(filepath):
@@ -923,6 +1138,7 @@ def download(run_name, filename):
     return "File not found", 404
 
 @app.route('/download-zip/<run_name>')
+@login_required
 def download_zip(run_name):
     run_path = os.path.join(RUNS_DIR, run_name)
     if not os.path.exists(run_path):
@@ -966,6 +1182,7 @@ def get_run_transcripts(run_name):
 
 
 @app.route('/api/analyze', methods=['POST'])
+@login_required
 def api_analyze():
     """Run Claude analysis on transcripts"""
     client = get_anthropic_client()
@@ -1036,6 +1253,7 @@ TRANSCRIPTS:
 
 
 @app.route('/api/chat', methods=['POST'])
+@login_required
 def api_chat():
     """Chat with Claude about transcripts"""
     client = get_anthropic_client()
@@ -1087,10 +1305,17 @@ Context about the transcripts:
 - [E] = External customer speaker (shown in ALL CAPS)
 - Products include: SecureAire, EaaS/Savings Measurement, ODCV, Occupancy Analytics, IAQ Monitoring
 
+IMPORTANT: When citing from transcripts, ALWAYS include:
+1. The exact quote
+2. The call date (from DATE: headers)
+3. The timestamp (from timestamps like "5:23 | Speaker")
+
+Format citations like: "quote here" (Date: Jan 15, 2026, Timestamp: 5:23)
+
 Available transcript data:
 {transcript_summary}
 
-Answer questions about patterns, objections, customer needs, and insights from these calls. Be specific and cite examples when possible.""",
+Answer questions about patterns, objections, customer needs, and insights from these calls. Be specific and cite examples with dates and timestamps.""",
             messages=messages
         )
 
@@ -1101,6 +1326,7 @@ Answer questions about patterns, objections, customer needs, and insights from t
 
 
 @app.route('/api/download-analysis', methods=['POST'])
+@login_required
 def api_download_analysis():
     """Download analysis as Word document"""
     if not DOCX_AVAILABLE:
@@ -1155,6 +1381,49 @@ def api_download_analysis():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/get-transcript', methods=['POST'])
+@login_required
+def api_get_transcript():
+    """Get a specific transcript for viewing in modal"""
+    data = request.get_json()
+    run_name = data.get('run_name')
+    call_id = data.get('call_id', '')
+    date = data.get('date', '')
+    timestamp = data.get('timestamp', '')
+
+    if not run_name:
+        return jsonify({'error': 'Missing run_name parameter'}), 400
+
+    # Load transcripts
+    transcripts = get_run_transcripts(run_name)
+    if not transcripts:
+        return jsonify({'error': f'Run folder not found: {run_name}'}), 404
+
+    # Try to find matching transcript
+    # First try by call_id if provided
+    if call_id:
+        for t in transcripts:
+            if call_id in t['content']:
+                return jsonify({'transcript': t['content'], 'filename': t['filename']})
+
+    # Try to find by date
+    if date:
+        for t in transcripts:
+            # Check if date appears in the transcript
+            if date in t['content']:
+                return jsonify({'transcript': t['content'], 'filename': t['filename']})
+
+    # If no match found, return first transcript with a note
+    if transcripts:
+        return jsonify({
+            'transcript': transcripts[0]['content'],
+            'filename': transcripts[0]['filename'],
+            'note': 'Exact call not found, showing first transcript'
+        })
+
+    return jsonify({'error': 'No transcripts found'}), 404
 
 
 if __name__ == '__main__':
