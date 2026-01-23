@@ -1,0 +1,1840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GongGPT</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #dbeafe;
+            --accent: #7c3aed;
+            --accent-light: #ede9fe;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --bg-primary: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-dark: #0f172a;
+            --border: #e2e8f0;
+            --border-hover: #cbd5e1;
+            --success: #059669;
+            --success-bg: #d1fae5;
+            --success-border: #6ee7b7;
+            --error: #dc2626;
+            --error-bg: #fee2e2;
+            --warning: #d97706;
+            --warning-bg: #fef3c7;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+            --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #1e293b 100%);
+            padding: 32px 24px;
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: white;
+            margin: 0 0 8px 0;
+            letter-spacing: -0.02em;
+        }
+
+        .header .tagline {
+            color: var(--text-muted);
+            font-size: 1.125rem;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 24px 48px;
+        }
+
+        /* Cards */
+        .card {
+            background-color: var(--bg-card);
+            padding: 32px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-header .icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .card-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card-header .step-badge {
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        /* Form Elements */
+        .form-section {
+            margin-bottom: 28px;
+        }
+
+        .form-section-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+
+        input[type="date"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        input[type="date"]:hover {
+            border-color: var(--border-hover);
+        }
+
+        input[type="date"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Checkbox Grid */
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .checkbox-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 16px;
+            background: var(--bg-primary);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .checkbox-card:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .checkbox-card.selected {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .checkbox-card input[type="checkbox"],
+        .checkbox-card input[type="radio"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--primary);
+            cursor: pointer;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .checkbox-card .checkbox-content {
+            flex: 1;
+        }
+
+        .checkbox-card .checkbox-label {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .checkbox-card .checkbox-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 0.625rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            border-radius: 4px;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+
+        .badge-beta {
+            background-color: var(--warning-bg);
+            color: var(--warning);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+            color: white;
+            width: 100%;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--text-primary);
+            border: 2px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-primary);
+            border-color: var(--border-hover);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success) 0%, #047857 100%);
+            color: white;
+            box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(5, 150, 105, 0.45);
+        }
+
+        /* Messages */
+        .message {
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .message-icon {
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+        }
+
+        .message-error {
+            background-color: var(--error-bg);
+            color: var(--error);
+            border: 1px solid #fca5a5;
+        }
+
+        .message-success {
+            background: linear-gradient(135deg, var(--success-bg) 0%, #a7f3d0 100%);
+            color: var(--success);
+            border: 1px solid var(--success-border);
+        }
+
+        /* Results Screen */
+        .results-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .results-header .success-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--success) 0%, #047857 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            color: white;
+        }
+
+        .results-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 8px 0;
+        }
+
+        .results-header .stats {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .results-header .stats strong {
+            color: var(--primary);
+        }
+
+        /* Download Section */
+        .download-section {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 32px;
+            border: 1px solid rgba(37, 99, 235, 0.2);
+        }
+
+        .download-section p {
+            margin: 0 0 16px 0;
+            color: var(--text-secondary);
+        }
+
+        /* Analysis Results */
+        .analysis-section {
+            margin-bottom: 32px;
+        }
+
+        .analysis-section h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 16px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .analysis-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 0;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .analysis-tab {
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .analysis-tab:hover {
+            color: var(--primary);
+            background: var(--bg-primary);
+        }
+
+        .analysis-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: transparent;
+        }
+
+        .analysis-content {
+            background: var(--bg-primary);
+            border-radius: 0 0 12px 12px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 0.9375rem;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            border: 1px solid var(--border);
+            border-top: none;
+        }
+
+        .analysis-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .analysis-download {
+            margin-top: 12px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        /* Chat Section */
+        .chat-section {
+            margin-bottom: 32px;
+        }
+
+        .chat-section h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 16px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chat-container {
+            background: var(--bg-primary);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            height: 300px;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .chat-message {
+            margin-bottom: 16px;
+            max-width: 85%;
+        }
+
+        .chat-message.user {
+            margin-left: auto;
+        }
+
+        .chat-message.assistant {
+            margin-right: auto;
+        }
+
+        .chat-bubble {
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 0.9375rem;
+            line-height: 1.5;
+        }
+
+        .chat-message.user .chat-bubble {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-message.assistant .chat-bubble {
+            background: white;
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-typing {
+            display: flex;
+            gap: 6px;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 16px;
+            width: fit-content;
+            border: 1px solid var(--border);
+        }
+
+        .chat-typing span {
+            width: 8px;
+            height: 8px;
+            background-color: var(--text-muted);
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .chat-typing span:nth-child(2) { animation-delay: 0.2s; }
+        .chat-typing span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-6px); }
+        }
+
+        .chat-input-area {
+            display: flex;
+            gap: 12px;
+            padding: 16px 20px;
+            background: white;
+            border-top: 1px solid var(--border);
+        }
+
+        .chat-input-area input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.9375rem;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .chat-input-area input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .chat-input-area button {
+            padding: 12px 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chat-input-area button:hover {
+            background: var(--primary-hover);
+        }
+
+        /* Back Button */
+        .back-section {
+            text-align: center;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .spinner-dark {
+            border-color: rgba(0,0,0,0.1);
+            border-top-color: var(--primary);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Hidden */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-xl);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            color: var(--text-secondary);
+            border-radius: 8px;
+        }
+
+        .modal-close:hover {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            font-size: 0.9375rem;
+            line-height: 1.7;
+            white-space: pre-wrap;
+        }
+
+        .highlight-quote {
+            background: linear-gradient(135deg, #fef08a 0%, #fde047 100%);
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        /* Citation Links in Analysis */
+        .citation-link {
+            color: var(--primary);
+            cursor: pointer;
+            text-decoration: underline;
+            text-decoration-style: dotted;
+        }
+
+        .citation-link:hover {
+            color: var(--primary-hover);
+            text-decoration-style: solid;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+
+        .footer a:hover {
+            color: var(--primary);
+        }
+
+        /* Executive Report Styles */
+        .report-container {
+            background: var(--bg-card);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .report-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            color: white;
+            padding: 32px;
+        }
+
+        .report-header h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .report-header p {
+            opacity: 0.9;
+            margin: 0;
+        }
+
+        .report-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            font-size: 13px;
+            opacity: 0.9;
+            margin-top: 16px;
+        }
+
+        .report-meta span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .report-action-bar {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 12px 24px;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .report-content {
+            padding: 32px;
+        }
+
+        .executive-summary {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%);
+            border-left: 4px solid var(--primary);
+            padding: 20px 24px;
+            border-radius: 0 12px 12px 0;
+            margin-bottom: 32px;
+        }
+
+        .executive-summary h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .executive-summary p {
+            font-size: 15px;
+            color: #334155;
+            line-height: 1.7;
+            margin: 0;
+        }
+
+        .report-section {
+            margin-bottom: 32px;
+        }
+
+        .report-section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .report-section-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .section-number {
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .finding-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 14px;
+            transition: box-shadow 0.2s;
+        }
+
+        .finding-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .finding-content {
+            font-size: 14px;
+            color: #334155;
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+
+        .finding-content strong {
+            color: var(--text-primary);
+        }
+
+        .citation-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .citation-badge:hover {
+            background: #bfdbfe;
+        }
+
+        .citation-badge svg {
+            width: 12px;
+            height: 12px;
+        }
+
+        .pull-quote {
+            position: relative;
+            background: #faf5ff;
+            border-radius: 12px;
+            padding: 20px 20px 20px 50px;
+            margin: 20px 0;
+            font-size: 16px;
+            font-style: italic;
+            color: #6b21a8;
+        }
+
+        .pull-quote::before {
+            content: '"';
+            position: absolute;
+            left: 16px;
+            top: 8px;
+            font-size: 40px;
+            color: var(--accent);
+            font-family: Georgia, serif;
+            line-height: 1;
+        }
+
+        .pull-quote-source {
+            display: block;
+            margin-top: 10px;
+            font-size: 12px;
+            font-style: normal;
+            color: #9333ea;
+            font-weight: 500;
+        }
+
+        .theme-block {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 14px;
+        }
+
+        .theme-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sub-finding {
+            background: white;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 10px;
+            border-left: 3px solid var(--accent);
+        }
+
+        .sub-finding:last-child {
+            margin-bottom: 0;
+        }
+
+        .recommendations-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .recommendation-item {
+            display: flex;
+            gap: 14px;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .recommendation-item:last-child {
+            border-bottom: none;
+        }
+
+        .recommendation-priority {
+            flex-shrink: 0;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .priority-high {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .priority-medium {
+            background: #fffbeb;
+            color: #d97706;
+        }
+
+        .priority-low {
+            background: #ecfdf5;
+            color: var(--success);
+        }
+
+        .recommendation-content h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 4px 0;
+        }
+
+        .recommendation-content p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .header {
+                padding: 24px 16px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .container {
+                padding: 0 16px 32px;
+            }
+
+            .card {
+                padding: 24px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .checkbox-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>GongGPT</h1>
+        <p class="tagline">AI-powered insights from your Gong sales calls</p>
+    </div>
+
+    <div class="container">
+        {% if error %}
+        <div class="message message-error">
+            <svg class="message-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        {% if success %}
+        <!-- RESULTS SCREEN -->
+        <div class="card">
+            <div class="results-header">
+                <div class="success-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </div>
+                <h2>Analysis Complete</h2>
+                <p class="stats"><strong>{{ total_calls }}</strong> calls processed and analyzed</p>
+            </div>
+
+            <!-- Analysis Results - Executive Report Style -->
+            {% if analysis_results %}
+            <div class="analysis-section">
+                <!-- Analysis Type Tabs -->
+                <div class="analysis-tabs" style="margin-bottom: 0; border-radius: 12px 12px 0 0; overflow: hidden;">
+                    {% for analysis in analysis_results %}
+                    <button class="analysis-tab {% if loop.first %}active{% endif %}" data-type="{{ analysis.type }}" onclick="showAnalysisTab('{{ analysis.type }}')">
+                        {{ analysis.name }}
+                    </button>
+                    {% endfor %}
+                </div>
+
+                {% for analysis in analysis_results %}
+                <div class="report-container {% if not loop.first %}hidden{% endif %}" id="analysis-{{ analysis.type }}" style="border-radius: 0 0 16px 16px; margin-top: 0;">
+                    <!-- Report Header -->
+                    <div class="report-header">
+                        <h2>{{ analysis.name }}</h2>
+                        <p>AI-powered insights from your Gong sales calls</p>
+                        <div class="report-meta">
+                            <span>
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                Generated: {{ now().strftime('%B %d, %Y') if now is defined else 'Today' }}
+                            </span>
+                            <span>
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                                </svg>
+                                {{ total_calls }} Calls Analyzed
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Action Bar -->
+                    <div class="report-action-bar">
+                        <button class="btn btn-secondary" onclick="downloadAnalysis('{{ analysis.type }}')">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                            Download as Word Doc
+                        </button>
+                    </div>
+
+                    <!-- Report Content - Rendered by JavaScript -->
+                    <div class="report-content" id="report-content-{{ analysis.type }}">
+                        <div class="analysis-loading">
+                            <div class="spinner spinner-dark"></div>
+                            <span>Formatting report...</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Chat Section -->
+            <div class="chat-section">
+                <h3>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    Ask Questions About Your Calls
+                </h3>
+
+                <div class="chat-container">
+                    <div class="chat-messages" id="chat-messages">
+                        <div class="chat-message assistant">
+                            <div class="chat-bubble">
+                                I've analyzed your call transcripts. Ask me anything about patterns, objections, customer needs, or specific insights. For example:
+                                <br><br>
+                                "What were the main objections about pricing?"<br>
+                                "Which customers mentioned competitors?"<br>
+                                "Summarize the key pain points mentioned"
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" id="chat-input" placeholder="Ask a question about your transcripts..." onkeypress="handleChatKeypress(event)">
+                        <button onclick="sendChatMessage()">Send</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Download Section -->
+            <div class="download-section">
+                <p>Download all transcripts, summaries, and analysis results</p>
+                <a href="/download-zip/{{ run_name }}" class="btn btn-success">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Download All Materials (ZIP)
+                </a>
+            </div>
+
+            <!-- Back Button -->
+            <div class="back-section">
+                <a href="/" class="btn btn-secondary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="19" y1="12" x2="5" y2="12"/>
+                        <polyline points="12 19 5 12 12 5"/>
+                    </svg>
+                    Configure Another Analysis
+                </a>
+            </div>
+        </div>
+
+        {% else %}
+        <!-- INPUT SCREEN -->
+        <form action="/process" method="post" id="process-form">
+            <input type="hidden" name="template" value="new">
+            <!-- Step 1: Analysis Types -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+                    <h2>Select AI Analysis Types</h2>
+                    <span class="step-badge">Step 1</span>
+                </div>
+
+                <p style="color: var(--text-secondary); margin: 0 0 20px 0;">Choose which AI analyses to run on your Gong calls. You can select multiple.</p>
+
+                <div class="checkbox-grid">
+                    <label class="checkbox-card">
+                        <input type="checkbox" name="analysis_types" value="objection" checked>
+                        <div class="checkbox-content">
+                            <div class="checkbox-label">Objection Analysis</div>
+                            <p class="checkbox-desc">Extract and classify customer objections</p>
+                        </div>
+                    </label>
+                    <label class="checkbox-card">
+                        <input type="checkbox" name="analysis_types" value="partnership">
+                        <div class="checkbox-content">
+                            <div class="checkbox-label">Partnership Opportunities <span class="badge badge-beta">Beta</span></div>
+                            <p class="checkbox-desc">Identify potential partner mentions</p>
+                        </div>
+                    </label>
+                    <label class="checkbox-card">
+                        <input type="checkbox" name="analysis_types" value="feedback">
+                        <div class="checkbox-content">
+                            <div class="checkbox-label">Product Feedback <span class="badge badge-beta">Beta</span></div>
+                            <p class="checkbox-desc">Extract product improvement suggestions</p>
+                        </div>
+                    </label>
+                    <label class="checkbox-card">
+                        <input type="checkbox" name="analysis_types" value="needs">
+                        <div class="checkbox-content">
+                            <div class="checkbox-label">Customer Needs <span class="badge badge-beta">Beta</span></div>
+                            <p class="checkbox-desc">Identify unmet needs and pain points</p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Step 2: Date Range & Products -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                    </div>
+                    <h2>Select Calls to Process</h2>
+                    <span class="step-badge">Step 2</span>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">Date Range</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="start_date">Start Date</label>
+                            <input type="date" id="start_date" name="start_date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="end_date">End Date</label>
+                            <input type="date" id="end_date" name="end_date" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">Product Focus (select one)</div>
+                    <div class="checkbox-grid">
+                        <label class="checkbox-card">
+                            <input type="radio" name="products" value="eaas and savings measurement" required>
+                            <div class="checkbox-content">
+                                <div class="checkbox-label">EaaS / Savings</div>
+                                <p class="checkbox-desc">Energy as a service</p>
+                            </div>
+                        </label>
+                        <label class="checkbox-card">
+                            <input type="radio" name="products" value="odcv">
+                            <div class="checkbox-content">
+                                <div class="checkbox-label">ODCV</div>
+                                <p class="checkbox-desc">On-demand ventilation</p>
+                            </div>
+                        </label>
+                        <label class="checkbox-card">
+                            <input type="radio" name="products" value="secure air">
+                            <div class="checkbox-content">
+                                <div class="checkbox-label">SecureAire</div>
+                                <p class="checkbox-desc">Air quality solutions</p>
+                            </div>
+                        </label>
+                        <label class="checkbox-card">
+                            <input type="radio" name="products" value="occupancy analytics">
+                            <div class="checkbox-content">
+                                <div class="checkbox-label">Occupancy</div>
+                                <p class="checkbox-desc">Space utilization</p>
+                            </div>
+                        </label>
+                        <label class="checkbox-card">
+                            <input type="radio" name="products" value="iaq monitoring">
+                            <div class="checkbox-content">
+                                <div class="checkbox-label">IAQ Monitoring</div>
+                                <p class="checkbox-desc">Indoor air quality</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="submit-btn">
+                    <span id="btn-text">Process Calls & Run Analysis (this may take a few minutes)</span>
+                    <div id="btn-spinner" class="spinner hidden"></div>
+                </button>
+            </div>
+        </form>
+
+        <div class="footer">
+            <a href="https://docs.google.com/document/d/1HPjZcaTaG8o-zhBOfqSp4lN9V51Rd-yZhbgfV3RfxDE/edit?usp=drivesdk" target="_blank">
+                View Bot Instructions
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Current run name for API calls
+        const currentRunName = "{{ run_name or '' }}";
+        let chatHistory = [];
+        let currentAnalysisType = null;
+
+        // Store analysis content for download and rendering
+        const analysisContent = {};
+        {% if analysis_results %}
+        {% for analysis in analysis_results %}
+        analysisContent['{{ analysis.type }}'] = `{{ analysis.content | replace('\\', '\\\\') | replace('`', '\\`') | replace('\n', '\\n') | safe }}`;
+        {% endfor %}
+        {% endif %}
+
+        // Parse and render analysis content as Executive Report
+        function parseAnalysisToReport(rawContent) {
+            const sections = {
+                executive: '',
+                findings: [],
+                analysis: [],
+                recommendations: []
+            };
+
+            const lines = rawContent.split('\n');
+            let currentSection = null;
+            let currentItem = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                const lowerLine = line.toLowerCase();
+
+                // Detect section headers
+                if (lowerLine.includes('executive summary') || lowerLine.match(/^#+\s*1\.?\s*executive/i)) {
+                    currentSection = 'executive';
+                    currentItem = [];
+                    continue;
+                } else if (lowerLine.includes('key findings') || lowerLine.match(/^#+\s*2\.?\s*key findings/i)) {
+                    if (currentSection === 'executive' && currentItem.length) {
+                        sections.executive = currentItem.join(' ').trim();
+                    }
+                    currentSection = 'findings';
+                    currentItem = [];
+                    continue;
+                } else if (lowerLine.includes('detailed analysis') || lowerLine.match(/^#+\s*3\.?\s*detailed/i)) {
+                    if (currentSection === 'findings' && currentItem.length) {
+                        sections.findings.push(currentItem.join(' ').trim());
+                    }
+                    currentSection = 'analysis';
+                    currentItem = [];
+                    continue;
+                } else if (lowerLine.includes('recommendation') || lowerLine.match(/^#+\s*4\.?\s*recommendation/i)) {
+                    if (currentSection === 'analysis' && currentItem.length) {
+                        sections.analysis.push(currentItem.join(' ').trim());
+                    }
+                    currentSection = 'recommendations';
+                    currentItem = [];
+                    continue;
+                }
+
+                // Handle bullet points and content
+                if (line.startsWith('-') || line.startsWith('*') || line.match(/^\d+\./)) {
+                    if (currentItem.length && currentSection) {
+                        if (currentSection === 'executive') {
+                            sections.executive = currentItem.join(' ').trim();
+                        } else if (currentSection === 'findings') {
+                            sections.findings.push(currentItem.join(' ').trim());
+                        } else if (currentSection === 'analysis') {
+                            sections.analysis.push(currentItem.join(' ').trim());
+                        } else if (currentSection === 'recommendations') {
+                            sections.recommendations.push(currentItem.join(' ').trim());
+                        }
+                    }
+                    currentItem = [line.replace(/^[-*]\s*|\d+\.\s*/, '')];
+                } else if (line && currentSection) {
+                    currentItem.push(line);
+                }
+            }
+
+            // Don't forget the last item
+            if (currentItem.length && currentSection) {
+                if (currentSection === 'executive') {
+                    sections.executive = currentItem.join(' ').trim();
+                } else if (currentSection === 'findings') {
+                    sections.findings.push(currentItem.join(' ').trim());
+                } else if (currentSection === 'analysis') {
+                    sections.analysis.push(currentItem.join(' ').trim());
+                } else if (currentSection === 'recommendations') {
+                    sections.recommendations.push(currentItem.join(' ').trim());
+                }
+            }
+
+            return sections;
+        }
+
+        // Format citation for clickable badge
+        function formatCitation(text) {
+            return text.replace(
+                /\((?:Call ID:\s*['"]?([^,'"]+)['"]?,\s*)?Date:\s*(.+?),\s*Timestamp:\s*(\d{1,2}:\d{2})\)/gi,
+                function(match, callId, date, timestamp) {
+                    return `<span class="citation-badge" onclick="openTranscriptModal('${callId || ''}', '${date.trim()}', '${timestamp}')">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                        </svg>
+                        ${date.trim()} @ ${timestamp}
+                    </span>`;
+                }
+            );
+        }
+
+        // Render Executive Report HTML
+        function renderExecutiveReport(sections) {
+            let html = '';
+
+            // Executive Summary
+            if (sections.executive) {
+                html += `
+                    <div class="executive-summary">
+                        <h3>Executive Summary</h3>
+                        <p>${formatCitation(sections.executive)}</p>
+                    </div>
+                `;
+            }
+
+            // Key Findings
+            if (sections.findings.length) {
+                html += `
+                    <div class="report-section">
+                        <div class="report-section-header">
+                            <span class="section-number">1</span>
+                            <h3>Key Findings</h3>
+                        </div>
+                `;
+
+                sections.findings.forEach((finding, idx) => {
+                    // Check if this looks like a quote (contains quotation marks or starts with capital and is short)
+                    const isQuote = finding.includes('"') && finding.length < 300;
+
+                    if (isQuote) {
+                        const quoteMatch = finding.match(/"([^"]+)"/);
+                        if (quoteMatch) {
+                            html += `
+                                <div class="pull-quote">
+                                    ${quoteMatch[1]}
+                                    <span class="pull-quote-source">— Customer Quote</span>
+                                </div>
+                            `;
+                        }
+                    } else {
+                        // Make first sentence bold if it looks like a title
+                        let content = finding;
+                        const firstSentenceMatch = finding.match(/^([^.!?]+[.!?])\s*/);
+                        if (firstSentenceMatch && firstSentenceMatch[1].length < 100) {
+                            content = `<strong>${firstSentenceMatch[1]}</strong> ${finding.substring(firstSentenceMatch[0].length)}`;
+                        }
+
+                        html += `
+                            <div class="finding-card">
+                                <div class="finding-content">${formatCitation(content)}</div>
+                            </div>
+                        `;
+                    }
+                });
+
+                html += '</div>';
+            }
+
+            // Detailed Analysis
+            if (sections.analysis.length) {
+                html += `
+                    <div class="report-section">
+                        <div class="report-section-header">
+                            <span class="section-number">2</span>
+                            <h3>Detailed Analysis</h3>
+                        </div>
+                        <div class="theme-block">
+                            <div class="theme-title">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
+                                Analysis by Theme
+                            </div>
+                `;
+
+                sections.analysis.forEach(item => {
+                    html += `
+                        <div class="sub-finding">
+                            <div class="finding-content">${formatCitation(item)}</div>
+                        </div>
+                    `;
+                });
+
+                html += '</div></div>';
+            }
+
+            // Recommendations
+            if (sections.recommendations.length) {
+                html += `
+                    <div class="report-section">
+                        <div class="report-section-header">
+                            <span class="section-number">3</span>
+                            <h3>Recommendations</h3>
+                        </div>
+                        <ul class="recommendations-list">
+                `;
+
+                const priorities = ['high', 'high', 'medium', 'low'];
+                sections.recommendations.forEach((rec, idx) => {
+                    const priority = priorities[Math.min(idx, priorities.length - 1)];
+                    const priorityLabel = priority === 'high' ? 'H' : priority === 'medium' ? 'M' : 'L';
+
+                    // Split into title and description if possible
+                    let title = rec;
+                    let desc = '';
+                    const colonIdx = rec.indexOf(':');
+                    const periodIdx = rec.indexOf('.');
+
+                    if (colonIdx > 0 && colonIdx < 80) {
+                        title = rec.substring(0, colonIdx);
+                        desc = rec.substring(colonIdx + 1).trim();
+                    } else if (periodIdx > 0 && periodIdx < 80) {
+                        title = rec.substring(0, periodIdx);
+                        desc = rec.substring(periodIdx + 1).trim();
+                    }
+
+                    html += `
+                        <li class="recommendation-item">
+                            <span class="recommendation-priority priority-${priority}">${priorityLabel}</span>
+                            <div class="recommendation-content">
+                                <h4>${title}</h4>
+                                ${desc ? `<p>${desc}</p>` : ''}
+                            </div>
+                        </li>
+                    `;
+                });
+
+                html += '</ul></div>';
+            }
+
+            return html || '<p style="color: var(--text-secondary); text-align: center; padding: 40px;">No structured content found. Raw analysis available for download.</p>';
+        }
+
+        // Initialize reports on page load
+        function initializeReports() {
+            Object.keys(analysisContent).forEach(type => {
+                const contentDiv = document.getElementById('report-content-' + type);
+                if (contentDiv && analysisContent[type]) {
+                    const sections = parseAnalysisToReport(analysisContent[type]);
+                    contentDiv.innerHTML = renderExecutiveReport(sections);
+                }
+            });
+        }
+
+        // Run initialization after DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeReports);
+        } else {
+            initializeReports();
+        }
+
+        // Checkbox card selection styling
+        document.querySelectorAll('.checkbox-card').forEach(card => {
+            const input = card.querySelector('input[type="checkbox"], input[type="radio"]');
+            if (input && input.checked) {
+                card.classList.add('selected');
+            }
+            if (input) {
+                input.addEventListener('change', function() {
+                    // For radio buttons, clear all siblings first
+                    if (this.type === 'radio') {
+                        document.querySelectorAll(`input[name="${this.name}"]`).forEach(radio => {
+                            radio.closest('.checkbox-card').classList.remove('selected');
+                        });
+                    }
+                    if (this.checked) {
+                        card.classList.add('selected');
+                    } else {
+                        card.classList.remove('selected');
+                    }
+                });
+            }
+        });
+
+        // Set default date range (today to same date last month)
+        const startDateInput = document.getElementById('start_date');
+        const endDateInput = document.getElementById('end_date');
+        if (startDateInput && endDateInput) {
+            const today = new Date();
+            const lastMonth = new Date();
+            lastMonth.setMonth(today.getMonth() - 1);
+
+            // Format as YYYY-MM-DD (use local date to avoid timezone issues)
+            const formatDate = (date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
+            startDateInput.value = formatDate(lastMonth);
+            endDateInput.value = formatDate(today);
+        }
+
+        // Form submission with loading state
+        const form = document.getElementById('process-form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const btn = document.getElementById('submit-btn');
+                const btnText = document.getElementById('btn-text');
+                const btnSpinner = document.getElementById('btn-spinner');
+
+                btn.disabled = true;
+                btnText.textContent = 'Processing...';
+                btnSpinner.classList.remove('hidden');
+            });
+        }
+
+        // Analysis tab switching
+        function showAnalysisTab(type) {
+            document.querySelectorAll('.analysis-tab').forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.dataset.type === type) {
+                    tab.classList.add('active');
+                }
+            });
+
+            // Hide all report containers
+            document.querySelectorAll('.report-container').forEach(container => {
+                container.classList.add('hidden');
+            });
+
+            // Show the selected report
+            const activeContent = document.getElementById('analysis-' + type);
+            if (activeContent) {
+                activeContent.classList.remove('hidden');
+            }
+
+            currentAnalysisType = type;
+        }
+
+        // Download analysis by type
+        async function downloadAnalysis(type) {
+            const content = analysisContent[type];
+            if (!content) return;
+
+            try {
+                const response = await fetch('/api/download-analysis', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        run_name: currentRunName,
+                        type: type,
+                        content: content
+                    })
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = type + '_analysis.docx';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                }
+            } catch (error) {
+                console.error('Download error:', error);
+            }
+        }
+
+        // Legacy function for compatibility
+        async function downloadCurrentAnalysis() {
+            const activeTab = document.querySelector('.analysis-tab.active');
+            if (activeTab) {
+                downloadAnalysis(activeTab.dataset.type);
+            }
+        }
+
+        // Chat functionality
+        function handleChatKeypress(event) {
+            if (event.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            if (!currentRunName) {
+                addChatMessage('assistant', 'No transcripts loaded. Please process calls first.');
+                return;
+            }
+
+            addChatMessage('user', message);
+            input.value = '';
+
+            const messagesDiv = document.getElementById('chat-messages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'chat-message assistant';
+            typingDiv.innerHTML = '<div class="chat-typing"><span></span><span></span><span></span></div>';
+            messagesDiv.appendChild(typingDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        run_name: currentRunName,
+                        history: chatHistory
+                    })
+                });
+
+                const data = await response.json();
+                typingDiv.remove();
+
+                if (data.error) {
+                    addChatMessage('assistant', 'Error: ' + data.error);
+                } else {
+                    chatHistory.push({ role: 'user', content: message });
+                    chatHistory.push({ role: 'assistant', content: data.response });
+                    addChatMessage('assistant', data.response);
+                }
+            } catch (error) {
+                typingDiv.remove();
+                addChatMessage('assistant', 'Error: ' + error.message);
+            }
+        }
+
+        function addChatMessage(role, content) {
+            const messagesDiv = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message ' + role;
+            messageDiv.innerHTML = '<div class="chat-bubble">' + formatAnalysisContent(content) + '</div>';
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Format analysis content to make citations clickable
+        function formatAnalysisContent(content) {
+            // Replace newlines with <br>
+            let formatted = content.replace(/\n/g, '<br>');
+
+            // Make citations clickable - match patterns like (Call ID: xxx, Date: xxx, Timestamp: xx:xx)
+            // or (Date: xxx, Timestamp: xx:xx)
+            // Using .+? (non-greedy) to capture dates with commas like "Jan 15, 2026"
+            formatted = formatted.replace(
+                /\((?:Call ID:\s*['"]?([^,'"]+)['"]?,\s*)?Date:\s*(.+?),\s*Timestamp:\s*(\d{1,2}:\d{2})\)/gi,
+                function(match, callId, date, timestamp) {
+                    const displayText = date.trim() + ' @ ' + timestamp;
+                    return `<span class="citation-link" onclick="openTranscriptModal('${callId || ''}', '${date.trim()}', '${timestamp}')">(${displayText})</span>`;
+                }
+            );
+
+            return formatted;
+        }
+
+        // Note: Analysis content is now rendered via initializeReports() using Executive Report style
+
+        // Modal functionality
+        function openTranscriptModal(callId, date, timestamp) {
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('transcript-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'transcript-modal';
+                modal.className = 'modal-overlay hidden';
+                modal.innerHTML = `
+                    <div class="modal">
+                        <div class="modal-header">
+                            <h3 id="modal-title">Call Transcript</h3>
+                            <button class="modal-close" onclick="closeTranscriptModal()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"/>
+                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="modal-body" id="modal-body">
+                            Loading transcript...
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+
+                // Close on backdrop click
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) closeTranscriptModal();
+                });
+            }
+
+            // Update modal title
+            document.getElementById('modal-title').textContent = `Call from ${date} at ${timestamp}`;
+            document.getElementById('modal-body').innerHTML = 'Loading transcript...';
+            modal.classList.remove('hidden');
+
+            // Fetch transcript from server
+            fetch('/api/get-transcript', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    run_name: currentRunName,
+                    call_id: callId,
+                    date: date,
+                    timestamp: timestamp
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('modal-body').innerHTML = 'Transcript not found.';
+                } else {
+                    // Highlight the timestamp section if found
+                    let content = data.transcript;
+                    if (timestamp) {
+                        // Try to highlight near the timestamp
+                        const timestampPattern = new RegExp(`(${timestamp}[^\\n]*\\n[^\\n]*)`, 'gi');
+                        content = content.replace(timestampPattern, '<span class="highlight-quote">$1</span>');
+                    }
+                    document.getElementById('modal-body').textContent = '';
+                    document.getElementById('modal-body').innerHTML = content.replace(/\n/g, '<br>');
+                }
+            })
+            .catch(err => {
+                document.getElementById('modal-body').innerHTML = 'Error loading transcript.';
+            });
+        }
+
+        function closeTranscriptModal() {
+            const modal = document.getElementById('transcript-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeTranscriptModal();
+        });
+    </script>
+</body>
+</html>
