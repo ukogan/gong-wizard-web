@@ -932,9 +932,9 @@ def logout():
 @app.route('/')
 @login_required
 def index():
-    return render_template('index.html', has_server_credentials=has_server_credentials(), user=session.get('user'))
+    return render_template('index_new.html', has_server_credentials=has_server_credentials(), user=session.get('user'))
 
-@app.route('/new')
+@app.route('/old')
 @login_required
 def index_new():
     return render_template('index_new.html', has_server_credentials=has_server_credentials(), user=session.get('user'))
