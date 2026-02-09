@@ -9,3 +9,6 @@ venv/
 /tmp/
 .DS_Store
 runs/
+
+# Staging for deletion
+for-deletion/
